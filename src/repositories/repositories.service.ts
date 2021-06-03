@@ -29,8 +29,12 @@ export class RepositoriesService {
     }
 
     async create(createRepositoryDto: CreateRepositoryDto) {
-        const repo = await this.repositoryModel.insertMany(createRepositoryDto.links.map(link => ({link}))).then(data =>  {return data});
-        return  this.filesCounter(repo);
+        const repo = await this.repositoryModel.insertMany(createRepositoryDto.links.map(link => ({link})))
+        ;
+        const whatReturn = await this.filesCounter(repo);
+        return whatReturn;
+
+
     }
 
     async remove(id: string): Promise<RepositoryInterface> {
@@ -43,7 +47,7 @@ export class RepositoriesService {
 
     async filesCounter(repos: RepositoryInterface[]) {
 
-        return  repos.map(async (repo) => {
+        return repos.map(async (repo) => {
 
             const apiUrl = "https://api.github.com/repos"
             const owner = repo.link.split("/")[3]
@@ -66,12 +70,13 @@ export class RepositoriesService {
                     return acc;
                 },
                 {});
-            return  this.commitService.create({
+            const result = await this.commitService.create({
                 repository: repo.id, changedFiles: Object.keys(changedFiles).map(fileName => ({
                     fileName,
                     count: changedFiles[fileName],
                 }))
             } as CommitInterface);
+            return result[0];
         });
     }
 }

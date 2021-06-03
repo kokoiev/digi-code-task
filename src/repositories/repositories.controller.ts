@@ -34,6 +34,7 @@ export class RepositoriesController {
     
     @Delete(':id')
     remove(@Param('id') id: string): Promise<RepositoryInterface> {
+        this.httpService.delete('http://localhost:5000/commit/60b8e112a6bec3280c04e9a0')
         return this.repoServiсe.remove(id)
      }
 

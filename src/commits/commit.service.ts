@@ -3,6 +3,7 @@ import {Model} from 'mongoose';
 import {CreateCommitDto} from "./dto/create-commit.dto";
 import {CommitInterface} from "../interfaces/commit.interface";
 import {ModelNames} from "../enums/model.names";
+import {RepositoryInterface} from "../interfaces/repository.interface";
 
 
 @Injectable()
@@ -23,6 +24,11 @@ export class CommitService {
         }
 
 
+
+    };
+
+    async remove(id: string): Promise<CommitInterface> {
+        return this.commitModel.findByIdAndRemove(id)
     }
 
 
