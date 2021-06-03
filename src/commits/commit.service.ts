@@ -31,5 +31,9 @@ export class CommitService {
         return this.commitModel.findByIdAndRemove(id)
     }
 
+    async removeByRepositoryId(repoId: string): Promise<any> {
+        return this.commitModel.deleteMany({repository: repoId});
+    }
+
 
 }

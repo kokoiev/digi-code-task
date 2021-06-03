@@ -5,6 +5,7 @@ import {CommitService} from "../commits/commit.service";
 import {RepositoryInterface} from "../interfaces/repository.interface";
 import {ModelNames} from "../enums/model.names";
 import {CommitInterface} from "../interfaces/commit.interface";
+import {GithubApiService} from "../gihub.api/github.api.service";
 
 
 @Injectable()
@@ -13,13 +14,14 @@ export class RepositoriesService {
     constructor(
         @Inject(CommitService)
         private commitService: CommitService,
+        @Inject(GithubApiService)
+        private githubApiService: GithubApiService,
         @Inject(ModelNames.REPOSITORIES)
         private repositoryModel: Model<RepositoryInterface>,
         private httpService: HttpService,
     ) {
     }
-
-
+    
     async getAll(): Promise<RepositoryInterface[]> {
         return this.repositoryModel.find().exec()
     }
@@ -29,54 +31,56 @@ export class RepositoriesService {
     }
 
     async create(createRepositoryDto: CreateRepositoryDto) {
-        const repo = await this.repositoryModel.insertMany(createRepositoryDto.links.map(link => ({link})))
-        ;
-        const whatReturn = await this.filesCounter(repo);
-        return whatReturn;
+        const repos = await this.repositoryModel.insertMany(createRepositoryDto.links.map(link => ({link})));
 
+        const response = repos.map(async repo => {
+            const {repoName, owner} = this.parseUrl(repo.link);
 
+            const pulls = await this.githubApiService.getPulls(repoName, owner);
+            const shaCommit = pulls.data[0].head.sha;
+            const commit = await this.githubApiService.getCommit(repoName, owner, shaCommit);
+
+            const changedFiles = commit.data.files;
+
+            return this.filesCounter(repo.id, changedFiles);
+        })
+
+        return Promise.all(response);
     }
 
-    async remove(id: string): Promise<RepositoryInterface> {
-        return this.repositoryModel.findByIdAndRemove(id)
+    async remove(id: string): Promise<any> {
+        await this.commitService.removeByRepositoryId(id);
+        return this.repositoryModel.deleteOne({_id: id});
     }
 
     async update(id: string, repositoryDto: CreateRepositoryDto): Promise<RepositoryInterface> {
-        return this.repositoryModel.findByIdAndUpdate(id, repositoryDto, {new: true})
+        return this.repositoryModel.findByIdAndUpdate(id, repositoryDto, {new: true});
     }
 
-    async filesCounter(repos: RepositoryInterface[]) {
+    filesCounter(repoId: string, changedFiles: any[]) {
+        const changedFilesWithCounters = changedFiles.reduce((acc, file) => {
+            if (!acc[file.filename]) {
+                acc[file.filename] = 1;
+            } else {
+                acc[file.filename]++;
+            }
 
-        return repos.map(async (repo) => {
+            return acc;
+        }, {});
 
-            const apiUrl = "https://api.github.com/repos"
-            const owner = repo.link.split("/")[3]
-            const repoName = repo.link.split("/")[4]
-            const getPulls = await this.httpService.get(`${apiUrl}/${owner}/${repoName}/pulls`).toPromise();
-            const shaCommit = getPulls.data[0].head.sha;
-            const getCommits = await this.httpService.get(`${apiUrl}/${owner}/${repoName}/commits/${shaCommit}`).toPromise();
+        return this.commitService.create({
+            repository: repoId,
+            changedFiles: Object.keys(changedFilesWithCounters).map(fileName => ({
+                fileName,
+                count: changedFilesWithCounters[fileName],
+            }))
+        } as CommitInterface);
+    }
 
-            const filesArray = getCommits.data.files;
+    private parseUrl(url: string): { repoName: string, owner: string } {
+        const owner = url.split("/")[3];
+        const repoName = url.split("/")[4];
 
-            const changedFiles = filesArray.map(i => {
-                return i.filename
-            }).reduce(function (acc, fileName) {
-                    if (!acc[fileName]) {
-                        acc[fileName] = 1;
-                    } else {
-                        acc[fileName]++;
-                    }
-
-                    return acc;
-                },
-                {});
-            const result = await this.commitService.create({
-                repository: repo.id, changedFiles: Object.keys(changedFiles).map(fileName => ({
-                    fileName,
-                    count: changedFiles[fileName],
-                }))
-            } as CommitInterface);
-            return result[0];
-        });
+        return {repoName, owner};
     }
 }
