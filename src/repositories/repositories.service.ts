@@ -1,12 +1,10 @@
 import {HttpService, Inject, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
 import {Model} from 'mongoose';
 import {CreateRepositoryDto} from './dto/create-repository.dto';
-import {RepositorySchema} from './schemas/repository.schema';
 import {CommitService} from "../commits/commit.service";
 import {RepositoryInterface} from "../interfaces/repository.interface";
 import {ModelNames} from "../enums/model.names";
-
+import {CommitInterface} from "../interfaces/commit.interface";
 
 
 @Injectable()
@@ -15,7 +13,7 @@ export class RepositoriesService {
     constructor(
         @Inject(CommitService)
         private commitService: CommitService,
-        @InjectModel(ModelNames.REPOSITORIES)
+        @Inject(ModelNames.REPOSITORIES)
         private repositoryModel: Model<RepositoryInterface>,
         private httpService: HttpService,
     ) {
@@ -31,8 +29,8 @@ export class RepositoriesService {
     }
 
     async create(createRepositoryDto: CreateRepositoryDto): Promise<void> {
-        await this.repositoryModel.insertMany(createRepositoryDto.links.map(link => ({link})));
-        await this.filesCounter(createRepositoryDto.links);
+        const repo = await this.repositoryModel.insertMany(createRepositoryDto.links.map(link => ({link})));
+        await this.filesCounter(repo);
     }
 
     async remove(id: string): Promise<RepositoryInterface> {
@@ -43,46 +41,37 @@ export class RepositoriesService {
         return this.repositoryModel.findByIdAndUpdate(id, repositoryDto, {new: true})
     }
 
-    async filesCounter(links: string[]) {
+    async filesCounter(repos: RepositoryInterface[]) {
 
-        await links.map(async (link) => {
+        await repos.map(async (repo) => {
 
             const apiUrl = "https://api.github.com/repos"
-            const owner = link.split("/")[3]
-            const repo = link.split("/")[4]
-            const getPulls = await this.httpService.get(`${apiUrl}/${owner}/${repo}/pulls`).toPromise();
+            const owner = repo.link.split("/")[3]
+            const repoName = repo.link.split("/")[4]
+            const getPulls = await this.httpService.get(`${apiUrl}/${owner}/${repoName}/pulls`).toPromise();
             const shaCommit = getPulls.data[0].head.sha;
-            const getCommits = await this.httpService.get(`${apiUrl}/${owner}/${repo}/commits/${shaCommit}`).toPromise();
+            const getCommits = await this.httpService.get(`${apiUrl}/${owner}/${repoName}/commits/${shaCommit}`).toPromise();
 
             const filesArray = getCommits.data.files;
 
-            const resultReduce = filesArray.map(i => {
+            const changedFiles = filesArray.map(i => {
                 return i.filename
-            }).reduce(function (acc, cur) {
-                if (!acc.hash[cur]) {
-                    acc.hash[cur] = {[cur]: 1};
-                    acc.map.set(acc.hash[cur], 1);
-                    acc.result.push(acc.hash[cur]);
-                } else {
-                    acc.hash[cur][cur] += 1;
-                    acc.map.set(acc.hash[cur], acc.hash[cur][cur]);
-                }
-                return acc;
-            }, {
-                hash: {},
-                map: new Map(),
-                result: []
-            });
-            const result = resultReduce.result.sort((a, b)=> {
-                return resultReduce.map.get(b) - resultReduce.map.get(a);
+            }).reduce(function (acc, fileName) {
+                    if (!acc[fileName]) {
+                        acc[fileName] = 1;
+                    } else {
+                        acc[fileName]++;
+                    }
 
-
-
-
-
-
-            });
-            console.log(result);
+                    return acc;
+                },
+                {});
+            await this.commitService.create({
+                repository: repo.id, changedFiles: Object.keys(changedFiles).map(fileName => ({
+                    fileName,
+                    count: changedFiles[fileName],
+                }))
+            } as CommitInterface);
         });
     }
 }

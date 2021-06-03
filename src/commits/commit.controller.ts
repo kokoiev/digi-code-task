@@ -1,7 +1,7 @@
 import { Controller, Get, HttpService, Post } from '@nestjs/common';
 import { CommitService } from './commit.service';
 
-@Controller('commits')
+@Controller('commit')
 export class CommitController {
 
     constructor(
@@ -9,9 +9,5 @@ export class CommitController {
        ) {
               
     }
-
-    @Post()
-    create() {
-
-    }
+ 
 }

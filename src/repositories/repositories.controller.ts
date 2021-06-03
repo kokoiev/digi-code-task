@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpService, Param, Post, Put,  } from '@nestjs/common';
+import {Body, Controller, Delete, Get, HttpCode, HttpService, Param, Post, Put,} from '@nestjs/common';
 import { CreateRepositoryDto } from './dto/create-repository.dto';
 import { UpdateRepositoryDto } from './dto/update-repositiry.dto';
 import { RepositoriesService } from './repositories.service';
@@ -23,12 +23,10 @@ export class RepositoriesController {
     }
 
     @Post()
-    createLink(){}
+    @HttpCode(200)
+    create(@Body() createRepositoryDto: CreateRepositoryDto) {
+        return this.repoServiсe.create(createRepositoryDto);
 
-
-    @Post()
-    create(@Body() createRepositoryDto: CreateRepositoryDto): Promise<void> {
-        return this.repoServiсe.create(createRepositoryDto)
      }
     
     @Delete(':id')

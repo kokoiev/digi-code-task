@@ -13,9 +13,16 @@ export class CommitService {
         private commitModel: Model<CommitInterface>) {
     }
 
-    async create(createCommitDto: CreateCommitDto): Promise<void> {
-        const changedFiles = await this.commitModel.create(createCommitDto);
-        await changedFiles.save(createCommitDto)
+    async create(createCommitDto: CommitInterface): Promise<void> {
+        try {
+            const changedFiles = await this.commitModel.insertMany(createCommitDto);
+            console.log('ins many');
+        }
+        catch (e){
+            console.log(e);
+        }
+
+
     }
 
 

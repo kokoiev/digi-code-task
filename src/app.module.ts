@@ -7,14 +7,18 @@ import { CommitController } from './commits/commit.controller';
 import { CommitModule } from './commits/commit.module';
 import { CommitService } from './commits/commit.service';
 import {databaseProviders} from "./providers/database.provider";
+import { commitProvaider } from "./providers/commit.provaider";
+import { repositoriesProvied } from "./providers/repositories.provied";
 
 
 @Module({
     controllers: [AppController, CommitController],
-    providers: [AppService, CommitService, databaseProviders ],
+    providers: [AppService, CommitService, databaseProviders, commitProvaider, repositoriesProvied ],
     imports: [
         RepositoriesModule,
-        CommitModule,
-        ]
-    })
+        CommitModule,                     
+    ],
+})
+    
+
 export class AppModule {}

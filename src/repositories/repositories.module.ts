@@ -10,7 +10,9 @@ import {repositoriesProvied} from "../providers/repositories.provied";
 @Module({
     providers: [RepositoriesService, databaseProviders, repositoriesProvied],
     controllers: [RepositoriesController],
-    imports: [HttpModule,CommitModule]
+    imports: [HttpModule, CommitModule],
+    exports:[RepositoriesService]
+    
 })
 export class RepositoriesModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

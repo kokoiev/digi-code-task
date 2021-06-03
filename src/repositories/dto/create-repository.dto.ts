@@ -8,5 +8,4 @@ export class CreateRepositoryDto {
     @IsArray()
     @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
     readonly links: string[]
-
 }
