@@ -4,6 +4,7 @@ import { UpdateRepositoryDto } from './dto/update-repositiry.dto';
 import { RepositoriesService } from './repositories.service';
 import {Promise} from "mongoose";
 import {RepositoryInterface} from "../interfaces/repository.interface";
+import {ApiOperation, ApiResponse} from "@nestjs/swagger";
 
 @Controller('repositories')
 export class RepositoriesController {
@@ -11,7 +12,8 @@ export class RepositoriesController {
     private httpService: HttpService) {
         
     }
-
+    @ApiOperation({summary: "Get All Repositories list"})
+    @ApiResponse({status: 200, type: [CreateRepositoryDto] })
     @Get()
     getAll(): Promise<RepositoryInterface[]> {
         return this.repoServiсe.getAll()
@@ -22,8 +24,9 @@ export class RepositoriesController {
         return this.repoServiсe.getById(id)
     }
 
+    @ApiOperation({summary: "Creating repository link"})
+    @ApiResponse({status: 200, type: CreateRepositoryDto })
     @Post()
-    @HttpCode(200)
     create(@Body() createRepositoryDto: CreateRepositoryDto) {
         return this.repoServiсe.create(createRepositoryDto);
 
