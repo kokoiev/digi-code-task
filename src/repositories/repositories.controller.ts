@@ -4,8 +4,9 @@ import { UpdateRepositoryDto } from './dto/update-repositiry.dto';
 import { RepositoriesService } from './repositories.service';
 import {Promise} from "mongoose";
 import {RepositoryInterface} from "../interfaces/repository.interface";
-import {ApiOperation, ApiResponse} from "@nestjs/swagger";
+import {ApiOperation, ApiProperty, ApiResponse, ApiTags} from "@nestjs/swagger";
 
+@ApiTags('Репозитории')
 @Controller('repositories')
 export class RepositoriesController {
     constructor(private repoServiсe: RepositoriesService,
@@ -19,8 +20,11 @@ export class RepositoriesController {
         return this.repoServiсe.getAll()
     }
 
+    @ApiOperation({summary: "Get info for One Repo"})
+    @ApiResponse({status: 200, type: [CreateRepositoryDto] })
     @Get(':id')
     getOne(@Param('id') id: string): Promise<RepositoryInterface> {
+        const result = [];
         return this.repoServiсe.getById(id)
     }
 
@@ -31,13 +35,14 @@ export class RepositoriesController {
         return this.repoServiсe.create(createRepositoryDto);
 
      }
-    
+    @ApiOperation({summary: "Delete one repo and his commits by ID"})
     @Delete(':id')
     remove(@Param('id') id: string): Promise<RepositoryInterface> {
         this.httpService.delete('http://localhost:5000/commit/60b8e112a6bec3280c04e9a0')
         return this.repoServiсe.remove(id)
      }
 
+    @ApiOperation({summary: "Add comment for Repo"})
     @Put(':id')
     update(@Body() updateRepositoryDto: UpdateRepositoryDto, @Param('id') id: string) {
         return this.repoServiсe.update(id, updateRepositoryDto)

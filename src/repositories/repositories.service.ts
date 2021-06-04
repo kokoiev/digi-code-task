@@ -6,6 +6,7 @@ import {RepositoryInterface} from "../interfaces/repository.interface";
 import {ModelNames} from "../enums/model.names";
 import {CommitInterface} from "../interfaces/commit.interface";
 import {GithubApiService} from "../gihub.api/github.api.service";
+import {UpdateRepositoryDto} from "./dto/update-repositiry.dto";
 
 
 @Injectable()
@@ -26,8 +27,16 @@ export class RepositoriesService {
         return this.repositoryModel.find().exec()
     }
 
-    async getById(id: string): Promise<RepositoryInterface> {
-        return this.repositoryModel.findById(id)
+    async getById(id: string): Promise<any> {
+        const repo = await this.repositoryModel.findById(id);
+        const commit = await this.commitService.getById(repo.id)
+        const fullResult = {
+            repo: repo,
+            commit: commit,
+        };
+        return fullResult;
+
+        // return this.repositoryModel.findById(id)
     }
 
     async create(createRepositoryDto: CreateRepositoryDto) {
@@ -37,12 +46,23 @@ export class RepositoriesService {
             const {repoName, owner} = this.parseUrl(repo.link);
 
             const pulls = await this.githubApiService.getPulls(repoName, owner);
+            const shaArray = [];
+            const commitArray =[];
+            pulls.data.map(e => shaArray.push(e.head.sha));
+
+            for (const sha of shaArray) {
+                const oneCommit = await this.githubApiService.getCommit(repoName, owner, sha);
+                commitArray.push(...oneCommit.data.files.map(file => file.filename))
+
+            };
+
             const shaCommit = pulls.data[0].head.sha;
             const commit = await this.githubApiService.getCommit(repoName, owner, shaCommit);
 
             const changedFiles = commit.data.files;
 
-            return this.filesCounter(repo.id, changedFiles);
+            await this.filesCounter(repo.id, changedFiles);
+            return  this.filesCounter(repo.id, commitArray);
         })
 
         return Promise.all(response);
@@ -53,20 +73,21 @@ export class RepositoriesService {
         return this.repositoryModel.deleteOne({_id: id});
     }
 
-    async update(id: string, repositoryDto: CreateRepositoryDto): Promise<RepositoryInterface> {
+    async update(id: string, repositoryDto: UpdateRepositoryDto): Promise<RepositoryInterface> {
         return this.repositoryModel.findByIdAndUpdate(id, repositoryDto, {new: true});
     }
 
     filesCounter(repoId: string, changedFiles: any[]) {
         const changedFilesWithCounters = changedFiles.reduce((acc, file) => {
-            if (!acc[file.filename]) {
-                acc[file.filename] = 1;
+            if (!acc[file]) {
+                acc[file] = 1;
             } else {
-                acc[file.filename]++;
+                acc[file]++;
             }
 
             return acc;
         }, {});
+        // const filesResult = changedFilesWithCounters.filter(obj => Object.values(obj).map(value => value > 1))
 
         return this.commitService.create({
             repository: repoId,
@@ -74,7 +95,8 @@ export class RepositoriesService {
                 fileName,
                 count: changedFilesWithCounters[fileName],
             }))
-        } as CommitInterface);
+        } as CommitInterface)
+            .then(data => data);
     }
 
     private parseUrl(url: string): { repoName: string, owner: string } {

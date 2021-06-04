@@ -1,6 +1,7 @@
 import {Controller, Delete, Get, HttpService, Inject, Param, Post} from '@nestjs/common';
 import { CommitService } from './commit.service';
 import {CommitInterface} from "../interfaces/commit.interface";
+import {ApiOperation} from "@nestjs/swagger";
 
 
 @Controller('commit')
@@ -11,9 +12,13 @@ export class CommitController {
         private httpService: HttpService
        ){}
 
-    @Delete(':id')
-    remove(@Param('id') id: string): Promise<CommitInterface> {
-        return this.commitService.remove(id)
+
+    @Get(':id')
+    getOne(@Param('id') id: string): Promise<any> {
+        return this.commitService.getById(id)
     }
+
+
+
  
 }

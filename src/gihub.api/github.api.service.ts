@@ -9,10 +9,18 @@ export class GithubApiService {
     }
 
     public getPulls(repoName: string, owner: string) {
-        return this.httpService.get(`/${owner}/${repoName}/pulls`).toPromise();
+        return this.httpService.get(`/${owner}/${repoName}/pulls`,{
+            headers: {
+                "Authorization": "token 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"
+            }
+        }).toPromise();
     }
 
     public getCommit(repoName: string, owner: string, shaCommit: string) {
-        return this.httpService.get(`/${owner}/${repoName}/commits/${shaCommit}`).toPromise()
+        return this.httpService.get(`/${owner}/${repoName}/commits/${shaCommit}`,{
+            headers: {
+                "Authorization": "token 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"
+            }
+        }).toPromise()
     }
 }
