@@ -22,14 +22,14 @@ export class RepositoriesService {
         private httpService: HttpService,
     ) {
     }
-    
+
     async getAll(): Promise<RepositoryInterface[]> {
         return this.repositoryModel.find().exec()
     }
 
     async getById(id): Promise<any> {
         const repo = await this.repositoryModel.findById(id);
-        const allCommit =  await this.commitService.getByRepoId(id);
+        const allCommit = await this.commitService.getByRepoId(id);
         const fullResult = {
             repo: repo,
             commit: allCommit,
@@ -47,17 +47,19 @@ export class RepositoriesService {
             const pulls = await this.githubApiService.getPulls(repoName, owner);
 
             const shaArray = [];
-            const commitArray =[];
+            const commitArray = [];
 
             pulls.data.map(e => shaArray.push(e.head.sha));
             for (const sha of shaArray) {
                 const oneCommit = await this.githubApiService.getCommit(repoName, owner, sha);
                 commitArray.push(...oneCommit.data.files.map(file => file))
-            };
-            return  this.filesCounter(repo.id, commitArray);
+            }
+
+            return this.filesCounter(repo.id, commitArray);
         })
         return Promise.all(response);
     }
+
     async remove(id: string): Promise<any> {
         await this.commitService.removeByRepositoryId(id);
         return this.repositoryModel.deleteOne({_id: id});
@@ -78,7 +80,7 @@ export class RepositoriesService {
             return acc;
         }, {});
         const filteredFiles = Object.keys(changedFilesWithCounters).reduce((acc, file) => {
-            if (changedFilesWithCounters[file] > 1 ) {
+            if (changedFilesWithCounters[file] > 1) {
                 acc[file] = changedFilesWithCounters[file];
 
             }

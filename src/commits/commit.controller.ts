@@ -1,8 +1,6 @@
-import {Controller, Delete, Get, HttpService, Inject, Param, Post} from '@nestjs/common';
-import { CommitService } from './commit.service';
+import {Controller, Get, Param} from '@nestjs/common';
+import {CommitService} from './commit.service';
 import {CommitInterface} from "../interfaces/commit.interface";
-import {ApiOperation} from "@nestjs/swagger";
-import {filter} from "rxjs/operators";
 
 
 @Controller('commit')
@@ -10,11 +8,11 @@ export class CommitController {
 
     constructor(
         private commitService: CommitService,
-        private httpService: HttpService
-       ){}
+    ) {
+    }
 
     @Get("/")
-    getAll(): Promise<CommitInterface[]>{
+    getAll(): Promise<CommitInterface[]> {
         return this.commitService.getAll()
     }
 
@@ -25,6 +23,4 @@ export class CommitController {
     }
 
 
-
- 
 }
