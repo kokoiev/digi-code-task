@@ -27,12 +27,12 @@ export class RepositoriesService {
         return this.repositoryModel.find().exec()
     }
 
-    async getById(id: string): Promise<any> {
+    async getById(id): Promise<any> {
         const repo = await this.repositoryModel.findById(id);
-        const commit = await this.commitService.getById(repo.id)
+        const allCommit =  await this.commitService.getByRepoId(id);
         const fullResult = {
             repo: repo,
-            commit: commit,
+            commit: allCommit,
         };
         return fullResult;
 
@@ -44,30 +44,20 @@ export class RepositoriesService {
 
         const response = repos.map(async repo => {
             const {repoName, owner} = this.parseUrl(repo.link);
-
             const pulls = await this.githubApiService.getPulls(repoName, owner);
+
             const shaArray = [];
             const commitArray =[];
-            pulls.data.map(e => shaArray.push(e.head.sha));
 
+            pulls.data.map(e => shaArray.push(e.head.sha));
             for (const sha of shaArray) {
                 const oneCommit = await this.githubApiService.getCommit(repoName, owner, sha);
-                commitArray.push(...oneCommit.data.files.map(file => file.filename))
-
+                commitArray.push(...oneCommit.data.files.map(file => file))
             };
-
-            const shaCommit = pulls.data[0].head.sha;
-            const commit = await this.githubApiService.getCommit(repoName, owner, shaCommit);
-
-            const changedFiles = commit.data.files;
-
-            await this.filesCounter(repo.id, changedFiles);
             return  this.filesCounter(repo.id, commitArray);
         })
-
         return Promise.all(response);
     }
-
     async remove(id: string): Promise<any> {
         await this.commitService.removeByRepositoryId(id);
         return this.repositoryModel.deleteOne({_id: id});
@@ -79,30 +69,34 @@ export class RepositoriesService {
 
     filesCounter(repoId: string, changedFiles: any[]) {
         const changedFilesWithCounters = changedFiles.reduce((acc, file) => {
-            if (!acc[file]) {
-                acc[file] = 1;
+            if (!acc[file.filename]) {
+                acc[file.filename] = 1;
             } else {
-                acc[file]++;
+                acc[file.filename]++;
             }
 
             return acc;
         }, {});
-        // const filesResult = changedFilesWithCounters.filter(obj => Object.values(obj).map(value => value > 1))
+        const filteredFiles = Object.keys(changedFilesWithCounters).reduce((acc, file) => {
+            if (changedFilesWithCounters[file] > 1 ) {
+                acc[file] = changedFilesWithCounters[file];
+
+            }
+            return acc;
+        }, {})
 
         return this.commitService.create({
             repository: repoId,
-            changedFiles: Object.keys(changedFilesWithCounters).map(fileName => ({
+            changedFiles: Object.keys(filteredFiles).map(fileName => ({
                 fileName,
-                count: changedFilesWithCounters[fileName],
+                count: filteredFiles[fileName],
             }))
-        } as CommitInterface)
-            .then(data => data);
+        } as CommitInterface);
     }
 
     private parseUrl(url: string): { repoName: string, owner: string } {
         const owner = url.split("/")[3];
         const repoName = url.split("/")[4];
-
         return {repoName, owner};
     }
 }

@@ -1,10 +1,7 @@
-import {Inject, Injectable, Post} from '@nestjs/common';
+import {Inject, Injectable} from '@nestjs/common';
 import {Model} from 'mongoose';
-import {CreateCommitDto} from "./dto/create-commit.dto";
 import {CommitInterface} from "../interfaces/commit.interface";
 import {ModelNames} from "../enums/model.names";
-import {RepositoryInterface} from "../interfaces/repository.interface";
-import {CONTROLLER_ID_KEY} from "@nestjs/core/injector/constants";
 
 
 @Injectable()
@@ -14,13 +11,15 @@ export class CommitService {
         @Inject(ModelNames.COMMITS)
         private commitModel: Model<CommitInterface>) {
     }
-
-    async getById(id: string): Promise<any> {
-
-        return this.commitModel.find({_id: id})
+     getAll(): Promise<CommitInterface[]>{
+        return this.commitModel.find().exec();
     }
 
-    async create(createCommitDto: CommitInterface){
+     getByRepoId(id): Promise<CommitInterface[]> {
+        return this.commitModel.find({repository: id }).exec();
+    }
+
+     create(createCommitDto: CommitInterface){
         try {
             return  this.commitModel.insertMany(createCommitDto);
         }
@@ -33,12 +32,12 @@ export class CommitService {
 
     };
 
-    async remove(id: string): Promise<CommitInterface> {
-        return this.commitModel.findByIdAndRemove(id)
+     remove(id: string): Promise<CommitInterface> {
+        return this.commitModel.findByIdAndRemove(id).exec();
     }
 
-    async removeByRepositoryId(repoId: string): Promise<any> {
-        return this.commitModel.deleteMany({repository: repoId});
+     removeByRepositoryId(repoId: string): Promise<any> {
+        return this.commitModel.deleteMany({repository: repoId}).exec();
 
     }
 

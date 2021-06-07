@@ -11,7 +11,7 @@ export class GithubApiService {
     public getPulls(repoName: string, owner: string) {
         return this.httpService.get(`/${owner}/${repoName}/pulls`,{
             headers: {
-                "Authorization": "token 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"
+                "Authorization": "token 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"
             }
         }).toPromise();
     }
@@ -19,7 +19,7 @@ export class GithubApiService {
     public getCommit(repoName: string, owner: string, shaCommit: string) {
         return this.httpService.get(`/${owner}/${repoName}/commits/${shaCommit}`,{
             headers: {
-                "Authorization": "token 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"
+                "Authorization": "token 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"
             }
         }).toPromise()
     }
